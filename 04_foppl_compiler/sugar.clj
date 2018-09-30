@@ -69,8 +69,7 @@
     (loop [acc []
            index 0]
       (if (>= index c)
-        (conj (apply list acc)
-              'vector)
+        acc
         (recur (conj acc
                      (desugar-foreach-helper index
                                              assignment-pairs
@@ -98,7 +97,6 @@
 (defn desugar-loop
   [e]
   (let [[s c start-e f & expressions]   e
-        h                               (println expressions)
         new-vars                        (utils/make-var-list expressions)
         assignment-block                (apply vector (interleave new-vars expressions))
         new-let-expression              (list 'let

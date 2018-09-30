@@ -7,17 +7,19 @@
 (ns foppl.core
   "Core implementation of the FOPPL language grammar."
   (:require [anglican.runtime       :as anglican]
-            [foppl.compiler         :as compiler]))
+            [foppl.compiler         :as compiler]
+            [clojure.core.matrix    :as m]
+            [clojure.core           :as clj]))
 
 ; ===============================================
 ; =========== Pre-declare functions =============
 ; ===============================================
 
 (def prob-program)
-(def let 'let)
 (def if 'if)
 (def sample 'sample)
 (def observe 'observe)
+
 ; ===============================================
 ; ================ Distributions ================
 ; ===============================================
@@ -27,7 +29,28 @@
 (def normal anglican/normal)
 (def binomial anglican/binomial)
 (def uniform-continuous anglican/uniform-continuous)
+(def discrete anglican/discrete)
 
+; ===============================================
+; ============== Matrix Operations ==============
+; ===============================================
+
+(clj/defn mat-mul [& args] (apply m/mmul args))
+(clj/defn mat-add [& args] (apply m/add args))
+(clj/defn mat-transpose [& args] (apply m/transpose args))
+(clj/defn mat-tanh [M] (m/emap anglican/tanh M))
+(clj/defn mat-relu [M] (m/emap (fn [x] (if (> x 0) x 0)) M))
+(clj/defn mat-repmat [M r c]
+  (let [R (reduce (partial m/join-along 0) (repeat r M))]
+    (reduce (partial m/join-along 1) (repeat c R))))
+
+
+; ===============================================
+; ============ Additional Operations ============
+; ===============================================
+
+(def tanh anglican/tanh)
+(def sqrt anglican/sqrt)
 
 ; ===============================================
 ; ======== namespacing for the language =========
@@ -51,10 +74,19 @@
 
 
 (defmacro probabilistic-program
-          [name e]
+          [e]
           (let [rho                 registered-functions
                 [clean-rho clean-e] (compiler/desugar-program rho e)
                 [E G]               (compiler/compile-expression clean-rho
                                                                  true
                                                                  clean-e)]
-            E))
+            (str [E G])))
+
+
+; ===============================================
+; ============= FOPPL Functions ==============
+; ===============================================
+
+(defn append
+  [vec item]
+  (conj vec item))

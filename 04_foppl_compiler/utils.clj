@@ -6,7 +6,8 @@
 
 (ns foppl.utils
   "Utilities for all aspects of the FOPPL."
-  (:require [clojure.walk           :as walk]))
+  (:require [clojure.walk           :as walk]
+            [clojure.core.matrix    :as m]))
 
 
 ; ===============================================

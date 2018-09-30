@@ -8,8 +8,7 @@
   "Core graph operations for the FOPPL language."
   (:require [anglican.runtime     :as anglican]
             [clojure.walk         :as walk]
-            [foppl.utils          :as utils]
-            [foppl.graph-examples :as examples]))
+            [foppl.utils          :as utils]))
 
 ; ===============================================
 ; =========== Pre-declare functions =============
@@ -17,6 +16,7 @@
 
 (def create-graph)
 (def merge-graphs)
+(def merge-nested)
 (def merge-graph-list)
 (def create-edges)
 (def print-graph)
@@ -45,8 +45,8 @@
   [G1 G2]
   (let [V (utils/merge-vectors (get G1 :V)
                          (get G2 :V))
-        A (merge (get G1 :A)
-                 (get G2 :A))
+        A (merge-nested (get G1 :A)
+                        (get G2 :A))
         P (merge (get G1 :P)
                  (get G2 :P))
         Y (merge (get G1 :Y)
@@ -55,6 +55,27 @@
      :A A
      :P P
      :Y Y}))
+
+(defn merge-nested
+  [map1 map2]
+  (let [new-map (merge map1 map2)
+        keys    (keys new-map)]
+    (loop [map      new-map
+           keys     keys]
+      (if (empty? keys)
+        map
+        (recur (assoc map
+                      (first keys)
+                      (merge (get map1
+                                  (first keys)
+                                  {})
+                             (get map2
+                                  (first keys)
+                                  {})))
+               (rest keys))))))
+
+
+
 
 (defn merge-graph-list
   [graphs]
@@ -77,10 +98,19 @@
 ; ========== Basic Graph Operations ===========
 ; =============================================
 
-; What should this do? Print ascii?
 (defn print-graph
   [graph]
-  (0))
+  (if (string? graph)
+    (let [val   (read-string graph)
+          h     (println val)
+          G     (if (vector? val)
+                    (second val)
+                    val)]
+      (println G)
+      G)
+    (do
+      (println graph)
+      graph)))
 
 (defn count-vertices
   [graph]
@@ -108,7 +138,6 @@
 ; ================= Sampling ==================
 ; =============================================
 
-; I will consider vertices *not* in the observation list to represent priors.
 (defn is-prior?
   [graph v]
   (nil? (get (get graph
@@ -126,7 +155,6 @@
       (anglican/sample* (eval dist)))))
 
 
-; I'm not doing anything with observations here, but I believe that this is correct.
 (defn sample-from-graph
   [graph prior-only]
   (let [P (get graph :P)

@@ -9,9 +9,10 @@
   (:require [anglican.runtime       :as anglican]
             [clojure.walk           :as walk]
             [foppl.sugar            :as sugar]
+            [foppl.evaluator        :as evaluator]
             [foppl.utils            :as utils]
-            [foppl.graph            :as graph]
-            [foppl.graph-examples   :as examples]))
+            [foppl.graph            :as graph]))
+
 
 ; ===============================================
 ; =========== Pre-declare functions =============
@@ -28,8 +29,8 @@
 (def score)
 (def try-get-symbol-value)
 (def try-run-procedure)
-(def deconstruct-map)
-(def deconstruct-vector)
+(def compile-map)
+(def compile-vector)
 
 ; =============================================
 ; ============== Sugar Removers ===============
@@ -64,12 +65,8 @@
   [rho phi e]
   (if (not (list? e))
     (cond
-      (vector? e)       (compile-expression rho
-                                            phi
-                                            (deconstruct-vector e))
-      (map? e)          (compile-expression rho
-                                            phi
-                                            (deconstruct-map e))
+      (vector? e)       (compile-vector rho phi e)
+      (map? e)          (compile-map rho phi e)
       :else             [e (graph/create-graph)])
     (let [exp (try-get-symbol-value (first e))]
       (cond
@@ -208,19 +205,18 @@
                                           body)]
 
       (compile-expression rho phi body))
-    (let [[exp G]   (compile-expression rho phi exp)
+    (let [[exp G]    (compile-expression rho phi exp)
           E1         (conj Vs exp)
-          E2         (try (eval E1)
-                         (catch RuntimeException
-                                e
-                                E1))
-          ; Something clever here... hehehehe
+          E2         (try (evaluator/partial-evaluate E1)
+                          (catch Exception
+                                 exception
+                                 E1))
           E3         (try (eval E2)
                          (catch RuntimeException
                                 e
-                                E1))
-          G-new     (graph/create-graph)
-          G         (graph/merge-graphs G G-new)]
+                                E2))
+          G-new      (graph/create-graph)
+          G          (graph/merge-graphs G G-new)]
       [E3 G])))
 
 (defn deconstruct-map
@@ -234,6 +230,49 @@
                        (apply list e)))
         'hash-map))
 
-(defn deconstruct-vector
-  [e]
-  (conj (apply list e) 'vector))
+(defn compile-vector
+  [rho phi e]
+  (loop [G      (graph/create-graph)
+         vec    e
+         acc    []]
+    (if (empty? vec)
+      [acc G]
+      (let [[E G-new]   (compile-expression rho
+                                            phi
+                                            (first vec))
+            G-new       (graph/merge-graphs G
+                                            G-new)]
+        (recur G-new
+               (rest vec)
+               (conj acc E))))))
+
+(defn compile-map
+  [rho phi e]
+  (let [map-keys    (keys e)]
+    (loop [G    (graph/create-graph)
+           m    e
+           k    map-keys]
+      (if (empty? k)
+        [m G]
+        (let [[E G-new]     (compile-expression rho
+                                                phi
+                                                (get m (first k)))
+              m             (assoc m
+                                   (first k)
+                                   E)
+              G-new         (graph/merge-graphs G G-new)]
+          (recur G-new
+                 m
+                 (rest k)))))))
+
+
+
+
+
+
+
+
+
+; (defn deconstruct-vector
+;   [e]
+;   (conj (apply list e) 'vector))
