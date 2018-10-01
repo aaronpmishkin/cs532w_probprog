@@ -42,8 +42,7 @@
 (defn partial-evaluate
   [e]
   (let [head (first e)
-        body (rest e)
-        h    (println e)]
+        body (rest e)]
     (cond
       (vector-expression? e)
       (cond
