@@ -161,17 +161,18 @@
                                  v2)))
           after  (not (nil? (get (get A v2)
                                  v1)))
-          val    (if (or before
-                         (not after))
-                   -1
-                   1)]
+          val    (cond before -1
+                       after   1
+                       :else   0)]
+
       val)))
 
 (defn topological-sort
   [G]
   (let [comp-fn (make-topological-comparator (get G :A))
         V       (get G :V)]
-    (apply vector (sort comp-fn V))))
+    (apply vector (sort comp-fn
+                        (sort comp-fn V)))))
 
 
 ; ============================================

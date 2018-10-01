@@ -42,7 +42,8 @@
 (defn partial-evaluate
   [e]
   (let [head (first e)
-        body (rest e)]
+        body (rest e)
+        h    (println e)]
     (cond
       (vector-expression? e)
       (cond
@@ -117,7 +118,7 @@
 
 (defn eval-rest
   [[e]]
-  (rest e))
+  (into [] (rest e)))
 
 (defn eval-nth
   [e]

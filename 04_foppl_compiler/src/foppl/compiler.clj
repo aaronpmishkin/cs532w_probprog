@@ -116,7 +116,6 @@
         [E1 G1]         (compile-expression rho phi e1)
         phi2            (list 'and phi E1)
         phi3            (list 'and phi (list 'not E1))
-        h (println phi3)
         [E2 G2]         (compile-expression rho phi2 e2)
         [E3 G3]         (compile-expression rho phi3 e3)
         G               (graph/merge-graph-list [G1 G2 G3])
