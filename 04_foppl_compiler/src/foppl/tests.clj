@@ -130,24 +130,24 @@
 ; ============= Graph Tests =============
 ; =======================================
 
-(let [[E G]             (compiler/compile-expression core/registered-functions true core3)
-      num-vertices      (graph/count-vertices G)
-      num-edges         (graph/count-edges G)
-      prior-sample      (graph/sample-from-prior G)
-      joint-sample      (graph/sample-from-joint G)]
-
-  [num-vertices
-   num-edges
-   prior-sample
-   joint-sample])
-
-
-(let [[E G]             (compiler/compile-expression core/registered-functions true core6)
-      num-vertices      (graph/count-vertices G)
-      num-edges         (graph/count-edges G)
-      prior-sample      (graph/sample-from-prior G)
-      joint-sample      (graph/sample-from-joint G)]
-  [num-vertices
-   num-edges
-   prior-sample
-   joint-sample])
+; (let [[E G]             (compiler/compile-expression core/registered-functions true core3)
+;       num-vertices      (graph/count-vertices G)
+;       num-edges         (graph/count-edges G)
+;       prior-sample      (graph/sample-from-prior G)
+;       joint-sample      (graph/sample-from-joint G)]
+;
+;   [num-vertices
+;    num-edges
+;    prior-sample
+;    joint-sample])
+;
+;
+; (let [[E G]             (compiler/compile-expression core/registered-functions true core6)
+;       num-vertices      (graph/count-vertices G)
+;       num-edges         (graph/count-edges G)
+;       prior-sample      (graph/sample-from-prior G)
+;       joint-sample      (graph/sample-from-joint G)]
+;   [num-vertices
+;    num-edges
+;    prior-sample
+;    joint-sample])

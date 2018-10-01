@@ -264,15 +264,3 @@
           (recur G-new
                  m
                  (rest k)))))))
-
-
-
-
-
-
-
-
-
-; (defn deconstruct-vector
-;   [e]
-;   (conj (apply list e) 'vector))

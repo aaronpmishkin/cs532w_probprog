@@ -4,7 +4,7 @@
 ; @Last modified by:   aaronmishkin
 ; @Last modified time: 18-09-26
 
-(ns foppl.rubric-programs
+(ns rubric-programs
   "FOPPL test/sample programs."
   (:require [foppl.core             :refer :all]
             [foppl.graph            :as graph]))
