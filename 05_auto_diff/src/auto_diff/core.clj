@@ -38,17 +38,27 @@
   (pow x 2))
 
 
+; (defmacro normpdf
+;           [x mu sigma]
+;           (list '/ (list 'exp (list '- (list '/ (list 'square (list '- x
+;                                                                        mu))
+;                                               (list '* 2 (list 'square sigma)))))
+;                 (list 'pow (list '*
+;                                  2
+;                                  Math/PI
+;                                  (list 'square sigma))
+;                       0.5)))
+
+
 (defmacro normpdf
           [x mu sigma]
-          (list '/ (list 'exp (list '- (list '/ (list 'square (list '- x
-                                                                       mu))
-                                              (list '* 2 (list 'square sigma)))))
-                (list 'pow (list '*
-                                 2
-                                 Math/PI
-                                 (list 'square sigma))
-                      0.5)))
-
+          (list 'log (list '/ (list 'exp (list '- (list '/ (list 'square (list '- x mu))
+                                                           (list '* 2 (list 'square sigma)))))
+                              (list 'pow (list '*
+                                               2
+                                               Math/PI
+                                               (list 'square sigma))
+                                     0.5))))
 ; ================================================
 ; ============= Entry for Auto-Diff ==============
 ; ================================================
