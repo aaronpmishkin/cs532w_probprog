@@ -412,6 +412,9 @@
          index-map]     (remove-discrete-vars s-matrix value-map labels index-map G)
         n               (count (keys index-map))
         observed-vars   (map first (into [] (get G :Y)))
+        index-map       (reduce (fn [acc v] (dissoc acc v))
+                                index-map
+                                observed-vars)
         k               (count (reduce (fn [acc v] (if
                                                      (is-continuous? v value-map G)
                                                      (conj acc v)

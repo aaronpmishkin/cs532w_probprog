@@ -18,7 +18,7 @@
 
 ; PROGRAM 1
 
-(probabilistic-program :gg 1 1
+(probabilistic-program :bgg 1 1
   (let [mu        (sample (normal 1 (sqrt 5)))
         sigma     (sqrt 2)
         lik       (normal mu sigma)]
@@ -52,7 +52,7 @@
     (observe (normal zn 1.0) yn)
     (rest (rest data))))
 
-(probabilistic-program :gg 0.5 2
+(probabilistic-program :bgg 0.5 2
   (let [slope (sample (normal 0.0 10.0))
         bias  (sample (normal 0.0 10.0))
         data (vector 1.0 2.1 2.0 3.9 3.0 5.3
@@ -120,7 +120,7 @@
 
 ; PROGRAM 5
 
-(probabilistic-program :gg 0.1 2
+(probabilistic-program :bgg 1 2
   (let [x (sample (normal 0 10))
         y (sample (normal 0 10))]
     (observe (dirac (+ x y)) 7)

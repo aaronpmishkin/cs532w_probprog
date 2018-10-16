@@ -45,7 +45,7 @@
 
 
 (anglican/defdist gibbs-from-prior
-  [v s s-vec G Sigma s-prime-vec index-map]
+  [v s G Sigma index-map]
   (sample*
     [this]
     (graph/sample-from-markov-blanket (first v) s G))
@@ -54,7 +54,7 @@
     (graph/score-vertex s-prime (get G :P) (first v))))
 
 (anglican/defdist gaussian-perturbation
-  [v s s-vec G Sigma s-prime-vec index-map]
+  [v s G Sigma index-map]
   (sample*
     [this]
     (assoc s (first v) (anglican/sample* (anglican/normal (get s (first v))
@@ -66,40 +66,44 @@
                        (get s-prime (first v)))))
 
 (anglican/defdist generic-gibbs
-  [v s s-vec G Sigma s-prime-vec index-map]
+  [v s G Sigma index-map]
   (sample*
     [this]
     (if (graph/is-continuous? (first v) s G)
-      [(anglican/sample* (gaussian-perturbation v s s-vec G Sigma s-prime-vec index-map)) nil]
-      [(anglican/sample* (gibbs-from-prior v s s-vec G Sigma s-prime-vec index-map)) nil]))
+      (anglican/sample* (gaussian-perturbation v s G Sigma index-map))
+      (anglican/sample* (gibbs-from-prior v s G Sigma index-map))))
   (observe*
     [this s-prime]
     (if (graph/is-continuous? (first v) s G)
-      (anglican/observe* (gaussian-perturbation v s s-vec G Sigma s-prime-vec index-map) s-prime)
-      (anglican/observe* (gibbs-from-prior v s s-vec G Sigma s-prime-vec index-map) s-prime))))
+      (anglican/observe* (gaussian-perturbation v s G Sigma index-map) s-prime)
+      (anglican/observe* (gibbs-from-prior v s G Sigma index-map) s-prime))))
 
 
 
 (anglican/defdist blockwise-generic-gibbs
-  [V s s-vec G Sigma s-prime-vec index-map]
+  [V s G Sigma index-map]
   (sample*
     [this]
-    (if (reduce 'and true (map (fn [v] (graph/is-continuous? v G))))
-      (let [s-prime-vec     (anglican/sample* (anglican/mvn s-vec Sigma))
-            h (println s-prime-vec)
+    (if (reduce (fn [acc v] (and acc (graph/is-continuous? v s G))) true V)
+      (let [h (println Sigma)
+            s-vec           (graph/sample-to-vec index-map s)
+            h (println s-vec)
+            s-prime-vec     (anglican/sample* (anglican/mvn s-vec Sigma))
+            h (println "we got here")
             s-prime         (graph/vec-to-sample V index-map s s-prime-vec)]
-        [s-prime s-prime-vec])
+        s-prime)
       (let [s-prime     (reduce (fn [acc v]
-                                  (assoc acc v (anglican/sample* (gibbs-from-prior [v] s s-vec G Sigma s-prime-vec index-map))))
+                                  (assoc acc v (anglican/sample* (gibbs-from-prior [v] s G Sigma index-map))))
                                 s
-                                V)
-            s-prime-vec     (graph/sample-to-vec index-map s-prime)]
-        [s-prime s-prime-vec])))
+                                V)]
+        s-prime)))
   (observe*
-    [V s-prime]
-    (if (reduce 'and true (map (fn [v] (graph/is-continuous? v G))))
-      (anglican/observe* (anglican/mvn s-vec Sigma) s-prime-vec)
-      (reduce (fn [acc v] (+ acc (anglican/observe* (gibbs-from-prior [v] s s-vec G Sigma s-prime-vec index-map) s-prime)))))))
+    [this s-prime]
+    (if (reduce (fn [acc v] (and acc (graph/is-continuous? v s-prime G))) true V)
+      (anglican/observe* (anglican/mvn (graph/sample-to-vec index-map s) Sigma) (graph/sample-to-vec index-map s-prime))
+      (reduce (fn [acc v] (+ acc (anglican/observe* (gibbs-from-prior [v] s G Sigma index-map) s-prime)))
+              0
+              V))))
 
 
 

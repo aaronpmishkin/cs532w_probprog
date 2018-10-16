@@ -28,7 +28,7 @@
         burnin              10
         sorted-V            (utils/topological-sort G)
         G                   (assoc G :V sorted-V)
-        [Sigma, index-map]  (graph/compute-empirical-covariance G 10)
+        [Sigma, index-map]  (graph/compute-empirical-covariance G 100)
         Q                   (proposals/retrieve-Q inf-method)
         s-list              (samplers/mh-in-gibbs Q G Sigma scale block-size index-map)
         s-list              (drop burnin s-list)
