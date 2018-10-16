@@ -1,0 +1,254 @@
+; @Author: aaronmishkin
+; @Date:   18-09-12
+; @Email:  amishkin@cs.ubc.ca
+; @Last modified by:   aaronmishkin
+; @Last modified time: 18-09-12
+
+(ns foppl.utils
+  "Utilities for all aspects of the FOPPL."
+  (:require [clojure.walk           :as walk]
+            [clojure.core.matrix    :as m]))
+
+
+; ===============================================
+; =========== Pre-declare functions =============
+; ===============================================
+
+(def merge-vectors)
+(def sanitize-symbol)
+(def build-map)
+(def multiple-insert)
+(def symbol-replacer)
+(def make-symbol-map)
+(def replace-variables)
+(def is-let-expression?)
+(def get-let-assignment-var)
+(def free?)
+(def free-var-recorder)
+(def get-free-vars)
+(def make-topological-comparator)
+(def topological-sort)
+(def parse-density-expression)
+(def parse-if-for-density)
+(def unroll-args)
+(def make-var-list)
+(def pair-assignments)
+(def evaluate-if-density)
+(def evaluate-density)
+
+; ==============================================
+; ============= General Utilities ==============
+; ==============================================
+
+(defn merge-vectors
+  [v1 v2]
+  (reduce conj v1 v2))
+
+(defn sanitize-symbol
+  [symbol]
+  (keyword (gensym (str symbol "_"))))
+
+
+(defn build-map
+  [symbols values]
+  (loop [acc {}
+         syms symbols
+         vals values]
+    (if (empty? syms)
+      acc
+      (recur (assoc acc
+                    (first syms)
+                    (first vals))
+             (rest syms)
+             (rest vals)))))
+
+(defn multiple-insert
+  [map key-value-pairs]
+  (reduce (fn [map [key value]]
+            (assoc map key value))
+          map
+          key-value-pairs))
+
+
+; =============================================
+; ============= Symbol Replacers ==============
+; =============================================
+
+(defn symbol-replacer
+  [symbol-map]
+  (fn [symbol]
+    (if (and (is-let-expression? symbol)
+             (contains? symbol-map
+                        (get-let-assignment-var symbol)))
+      (let [nested-assignment-var (get-let-assignment-var symbol)]
+       (assoc symbol-map
+              nested-assignment-var
+              nested-assignment-var)
+       symbol)
+      (if (contains? symbol-map symbol)
+        (get symbol-map symbol)
+        symbol))))
+
+
+(defn make-symbol-map
+  [symbol-map symbol]
+  (assoc symbol-map
+         symbol
+         (sanitize-symbol symbol)))
+
+(defn replace-variables
+  [params compiled-params body]
+  (walk/prewalk (symbol-replacer (build-map params
+                                            compiled-params))
+                body))
+
+; ==============================================
+; ============== Let Expressions ===============
+; ==============================================
+
+
+(defn is-let-expression?
+  [e]
+  (and (list? e)
+       (= 'let
+          (first e))))
+
+(defn get-let-assignment-var
+  [e]
+  (first (second e)))
+
+
+; =============================================
+; ============== Free Variables ===============
+; =============================================
+
+(defn free?
+  [e]
+  (and (not (list? e))
+       (not (keyword? e))
+       (symbol? e)
+       (and (try (not (resolve e))
+                 (catch ClassCastException
+                        e
+                        true)))
+       (not (resolve 'e))))
+
+(defn free-var-recorder
+  [rho]
+  (fn [e]
+   (if (and (free? e)
+            (not (contains? rho e)))
+       (do
+         (def free-vars (conj free-vars e))
+         e)
+       e)))
+
+(defn get-free-vars
+  [rho E]
+  (do
+    (def free-vars #{})
+    (walk/postwalk (free-var-recorder rho)
+                   E)
+    free-vars))
+
+; =============================================
+; =========== Topological Ordering ============
+; =============================================
+
+(defn make-topological-comparator
+  [A]
+  (fn [v1 v2]
+    (let [before (not (nil? (get (get A v1)
+                                 v2)))
+          after  (not (nil? (get (get A v2)
+                                 v1)))
+          val    (cond before -1
+                       after   1
+                       :else   0)]
+
+      val)))
+
+(defn make-observe-comparator
+  [Y]
+  (fn [v1 v2]
+    (let [before (not (nil? (get Y v2)))
+          after  (not (nil? (get Y v1)))
+          val    (cond before -1
+                       after   1
+                       :else   0)]
+
+      val)))
+
+(defn topological-sort
+  [G]
+  (let [comp-fn         (make-topological-comparator (get G :A))
+        observe-comp-fn (make-observe-comparator (get G :Y))
+        V       (get G :V)]
+    (apply vector (sort observe-comp-fn
+                        (sort comp-fn
+                              (sort comp-fn V))))))
+
+
+; ============================================
+; =========== Density Expressions ============
+; ============================================
+
+(defn parse-density-expression
+  [e]
+  (let [head (first e)
+        body (rest e)]
+       (cond
+         (= 'if head)           (parse-if-for-density body)
+         (= 'anglican.runtime/observe* head)     (first body))))
+
+(defn parse-if-for-density
+  [body]
+  (let [[e1 e2 e3]      body
+        E1              (eval e1)]
+       (if E1
+         (parse-density-expression e2)
+         e3)))
+
+(defn evaluate-if-density
+  [E]
+  (let [[_ E1 E2 E3]        E]
+    (if (eval E1)
+      (eval E2)
+      0)))
+
+(defn evaluate-density
+  [E]
+  (if (= 'if (first E))
+    (evaluate-if-density E)
+    (eval E)))
+
+
+; ==================================================
+; ============= De-sugaring Utilities ==============
+; ==================================================
+
+(defn unroll-args
+  [start args]
+  (apply list
+         (reduce conj
+                 start
+                 args)))
+
+(defn make-var-list
+  [expressions]
+  (reduce (fn [acc e]
+            (conj acc
+                  (gensym "newvar_")))
+          []
+          expressions))
+
+
+(defn pair-assignments
+  [assignments]
+  (loop [acc []
+         vec assignments]
+    (if (empty? vec)
+      acc
+      (recur (conj acc
+                   [(first vec) (second vec)])
+             (rest (rest vec))))))
