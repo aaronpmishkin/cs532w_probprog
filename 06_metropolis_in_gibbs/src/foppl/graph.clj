@@ -393,8 +393,6 @@
     [s-matrix index-map]))
 
 
-; TODO: Change true to false.
-
 (defn compute-empirical-covariance
   [G n]
   (let [V               (get G :V)
@@ -412,15 +410,14 @@
          index-map]     (remove-discrete-vars s-matrix value-map labels index-map G)
         n               (count (keys index-map))
         observed-vars   (map first (into [] (get G :Y)))
-        index-map       (reduce (fn [acc v] (dissoc acc v))
-                                index-map
-                                observed-vars)
-        k               (count (reduce (fn [acc v] (if
-                                                     (is-continuous? v value-map G)
+        k               (count (reduce (fn [acc v] (if (get index-map v)
                                                      (conj acc v)
                                                      acc))
                                        []
                                        observed-vars))
+        index-map       (reduce (fn [acc v] (dissoc acc v))
+                                index-map
+                                observed-vars)
         cov             (if (> n 0)
                           (conditional-covariance (anglican/covariance s-matrix)
                                                   n

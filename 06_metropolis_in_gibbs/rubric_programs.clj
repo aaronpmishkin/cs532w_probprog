@@ -27,22 +27,6 @@
     mu))
 
 
-; Compute the ground truth using Anglican.
-
-(emit/defquery program1 []
-  (let [mu        (sample (normal 1 (sqrt 5)))
-        sigma     (sqrt 2)
-        lik       (normal mu sigma)]
-    (observe lik 8)
-    (observe lik 9)
-    mu))
-
-(stat/empirical-mean
-  (stat/collect-results
-    (take 10000
-          (drop 5000 (c/doquery :smc program1 [])))))
-
-
 ; PROGRAM 2
 
 (defn observe-data [_ data slope bias]
@@ -60,21 +44,8 @@
     (loop 6 data observe-data slope bias)
     (vector slope bias)))
 
-(emit/defquery program2 []
-  (let [slope (sample (normal 0.0 10.0))
-        bias  (sample (normal 0.0 10.0))
-        data [1.0 2.1 2.0 3.9 3.0 5.3 4.0 7.7 5.0 10.2 6.0 12.9]]
-    (loop 6 data observe-data slope bias)
-    (vector slope bias)))
-
-(stat/empirical-mean
-  (stat/collect-results
-    (take 10000
-          (drop 5000 (c/doquery :smc program2 [])))))
-
-
 ; PROGRAM 3
-(probabilistic-program :gg 0.05 2
+(probabilistic-program :gg 0.05 1
   (let [data [1.1 2.1 2.0 1.9 0.0 -0.1 -0.05]
         likes (foreach 3 []
                 (let [mu (sample (normal 0.0 10.0))
@@ -120,7 +91,7 @@
 
 ; PROGRAM 5
 
-(probabilistic-program :bgg 1 2
+(probabilistic-program :bgg 0.01 2
   (let [x (sample (normal 0 10))
         y (sample (normal 0 10))]
     (observe (dirac (+ x y)) 7)
