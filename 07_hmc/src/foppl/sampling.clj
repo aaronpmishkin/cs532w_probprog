@@ -12,9 +12,10 @@
 ; =========== Pre-declare functions =============
 ; ===============================================
 
+(def get-nils)
+(def replace-first-nil)
 (def sample-vertex)
 (def sample-from-graph)
-(def ordered-sample-from-graph)
 (def sample-from-prior)
 (def sample-from-joint)
 (def sample-from-consistent-joint)
@@ -28,70 +29,70 @@
 ; ============== Graph Samplers ================
 ; ==============================================
 
+(defn joint-sample-to-vec
+  [V sample]
+  (reduce (fn [acc v]
+            (conj acc (get sample v)))
+          []
+          V))
+
+(defn get-nils
+  [n]
+  (loop [n n
+         acc []]
+    (if (= 0 n)
+      acc
+      (recur (dec n)
+             (conj acc nil)))))
+
+(defn replace-first-nil
+  [s-vec s]
+  (loop [acc   []
+         s-vec s-vec
+         s     s]
+    (cond
+      (empty? s-vec)            acc
+      (= (first s-vec) nil)     (recur (conj acc s)
+                                       (rest s-vec)
+                                       nil)
+      :else                     (recur (conj acc (first s-vec))
+                                       (rest s-vec)
+                                       s))))
 
 (defn sample-vertex
-  [graph value-map P v]
-  (let [e       (get P v)
-        E       (walk/prewalk-replace value-map
-                              e)
-        dist    (scoring/parse-density-expression E)
-        sample  (if (= dist 1)
-                  nil
-                  (anglican/sample* (eval dist)))]
-    (if (seq? sample)
-      (into [] sample)
-      sample)))
-
+  [sampling-fn s-vec]
+  (let [sample      (sampling-fn s-vec)
+        sample      (if (seq? sample)
+                      (into [] sample)
+                      sample)]
+    sample))
 
 
 (defn sample-from-graph
-  [graph prior-only sort?]
-  (let [P (get graph :P)
-        V (if sort
-            (utils/topological-sort graph)
-            (get graph :V))]
-    (reduce (fn [sample-map v]
+  [G sampling-map prior-only]
+  (let [V           (get G :V)
+        s-vec       (get-nils (count V))]
+    (reduce (fn [[sample s-vec] v]
               (if (or (not prior-only)
-                      (graph/is-prior? graph v))
-                (assoc sample-map
-                       v
-                       (sample-vertex graph
-                                      sample-map
-                                      P
-                                      v))
-                sample-map))
-            {}
-            V)))
-
-(defn ordered-sample-from-graph
-  [graph prior-only]
-  (let [P (get graph :P)
-        V (get graph :V)]
-    (reduce (fn [[acc sample-map] v]
-              (if (or (not prior-only)
-                      (graph/is-prior? graph v))
-                (let [sample (sample-vertex graph
-                                            sample-map
-                                            P
-                                            v)]
-                  [(conj acc sample) (assoc sample-map v sample)])
-
-                [acc sample-map]))
-            [[] {}]
+                      (graph/is-prior? G v))
+                (let [v-s    (sample-vertex (get sampling-map v) s-vec)]
+                  [(assoc sample v v-s)
+                   (replace-first-nil s-vec v-s)])
+                [sample s-vec]))
+            [{} s-vec]
             V)))
 
 (defn sample-from-prior
-  [graph sort?]
-  (sample-from-graph graph
-                     true
-                     sort?))
-
+  [G sampling-map]
+  (first (sample-from-graph G
+                            sampling-map
+                            true)))
 
 (defn sample-from-joint
-  [graph sort?]
-  (sample-from-graph graph
-                     false
-                     sort?))
+  [G sampling-map]
+  (first (sample-from-graph G
+                            sampling-map
+                            false)))
 
 
 ; =============================================
@@ -99,30 +100,25 @@
 ; =============================================
 
 (defn sample-from-consistent-joint
-  [G sort?]
+  [G sampling-map]
   (let [Y                   (get G :Y)
         ks                  (keys Y)
-        value-map           (sample-from-prior G sort?)]
-    (reduce (fn [acc, k]
-              (assoc acc
-                     k
-                     (get Y k)))
-            value-map
-            ks)))
-
-(defn vec-sample-from-consistent-joint
-  [G index-map]
-  (let [value-map           (sample-from-consistent-joint G false)
-        value-vec           (utils/sample-to-vec index-map value-map)]
-    [value-vec value-map]))
-
+        [s s-vec]           (sample-from-graph G sampling-map true)
+        s                   (reduce (fn [acc, k]
+                                      (assoc acc
+                                             k
+                                             (get Y k)))
+                                    s
+                                    ks)
+        s-vec               (joint-sample-to-vec (get G :V) s)]
+    [s s-vec]))
 
 (defn sample-from-markov-blanket
-  [v s G]
-  (let [P                   (get G :P)
-        v-sample            (sample-vertex G s P v)
-        s-prime             (assoc s v v-sample)]
-    s-prime))
+  [v sample s-vec G sampling-map]
+  (let [v-sample            (sample-vertex (get sampling-map v) s-vec)
+        s-prime             (assoc sample v v-sample)
+        s-prime-vec         (joint-sample-to-vec (get G :V) s-prime)]
+    [s-prime s-prime-vec]))
 
 
 ; ==============================================

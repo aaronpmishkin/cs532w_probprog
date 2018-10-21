@@ -6,6 +6,7 @@
             [foppl.proposals        :as proposals]
             [foppl.mh-gibbs         :as mh-gibbs]
             [foppl.covariance       :as covariance]
+            [foppl.graph            :as graph]
             [foppl.sampling         :as sampling]
             [foppl.scoring          :as scoring]
             [foppl.utils            :as utils]))
@@ -32,18 +33,19 @@
 
 (defn compute-expectation
   [inf-method scale block-size E G]
-  (let [n                   10
-        burnin              10
+  (let [n                   10000
+        burnin              5000
         sorted-V            (utils/topological-sort G)
         G                   (assoc G :V sorted-V)
-        [Sigma, index-map]  (covariance/compute-empirical-covariance G 100)
+        sampling-map        (graph/build-sampling-map G)
+        scoring-map         (graph/build-scoring-map G)
+        scoring-fn          (graph/build-complete-scoring-fn G)
+        [Sigma, index-map]  (covariance/compute-empirical-covariance sampling-map G 100)
         Sigma               (m/mul Sigma scale)
         Q                   (proposals/retrieve-Q inf-method)
-        [s-vec s-start]     (sampling/vec-sample-from-consistent-joint G index-map)
-        p-tilde-start       (scoring/score-assignment s-start
-                                                    G
-                                                    false)
-        s-list              (mh-gibbs/mh-in-gibbs Q G [s-start p-tilde-start] Sigma block-size index-map)
+        [s-start s-vec]     (sampling/sample-from-consistent-joint G sampling-map)
+        p-tilde-start       (scoring/score-assignment s-vec scoring-fn)
+        s-list              (mh-gibbs/mh-in-gibbs Q G [[s-start s-vec] p-tilde-start] Sigma block-size index-map sampling-map scoring-map scoring-fn)
         s-list              (drop burnin s-list)
         samples             (take n s-list)
         acc                 (sum-eval E samples)

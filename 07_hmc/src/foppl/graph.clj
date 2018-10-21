@@ -34,7 +34,15 @@
 (def count-edges)
 (def score-vertex)
 (def score-assignment)
-
+(def parse-density-expression)
+(def parse-if-for-density)
+(def wrap-score-expression)
+(def build-score-function)
+(def sum-score-expressions)
+(def build-complete-scoring-fn)
+(def build-score-map)
+(def build-sampling-function)
+(def build-sampling-map)
 
 ; =============================================
 ; ============== Graph Creation ===============
@@ -106,7 +114,7 @@
   [v s G]
   (let [P           (get G :P)
         e           (get P v)
-        dist        (scoring/parse-density-expression e)
+        dist        (parse-density-expression e)
         dist        (evaluator/partial-evaluate (walk/prewalk-replace s dist))
         head        (first dist)]
     (cond
@@ -174,8 +182,82 @@
 ; ===== Density and Sampler Constructors ======
 ; =============================================
 
-(defn build-density-function
-  [v G])
+(defn parse-density-expression
+  [e]
+  (let [head (first e)
+        body (rest e)]
+       (cond
+         (= 'if head)                            (parse-if-for-density body)
+         (= 'anglican.runtime/observe* head)     (first body))))
+
+(defn parse-if-for-density
+  [body]
+  (let [[e1 e2 e3]      body
+        E1              (eval e1)]
+       (if E1
+         (parse-density-expression e2)
+         e3)))
+
+(defn wrap-score-expression
+  [expression]
+  `(~'if (~'= ~expression 1)
+         0
+         ~expression))
+
+(defn build-score-function
+  [v G]
+  (let [V           (get G :V)
+        P           (get G :P)
+        density-ex  (wrap-score-expression (get P v))]
+    `(~'fn [[~@V]]
+           ~density-ex)))
+
+(defn sum-score-expressions
+  [V P]
+  (if (= (count V)
+         2)
+    (list '+
+          (wrap-score-expression (get P (first V)))
+          (wrap-score-expression (get P (second V))))
+    (list '+
+          (wrap-score-expression (get P (first V)))
+          (sum-score-expressions (rest V)
+                                 P))))
+
+(defn build-complete-scoring-fn
+  [G]
+  (let [V           (get G :V)
+        P           (get G :P)
+        density-ex  (sum-score-expressions V P)]
+    (eval `(~'fn [~@V]
+                 ~density-ex))))
+
+(defn build-scoring-map
+  [G]
+  (let [V           (get G :V)]
+    (reduce (fn [acc v]
+              (assoc acc v (eval (build-score-function v G))))
+            {}
+            V)))
+
+(defn build-sampling-function
+  [v G]
+  (let [V               (get G :V)
+        P               (get G :P)
+        density-ex      (parse-density-expression (get P v))]
+    `(~'fn [[~@V]]
+           (anglican/sample* ~density-ex))))
+
+
+(defn build-sampling-map
+  [G]
+  (let [V           (get G :V)]
+    (reduce (fn [acc v]
+              (assoc acc v (eval (build-sampling-function v G))))
+            {}
+            V)))
+
+
 
 
 

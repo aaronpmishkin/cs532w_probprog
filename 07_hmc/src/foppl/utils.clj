@@ -35,7 +35,7 @@
 (def make-var-list)
 (def pair-assignments)
 (def sample-to-vec-labels)
-(def sample-to-vec)
+(def c-sample-to-vec)
 (def vec-to-sample)
 
 ; ==============================================
@@ -232,7 +232,7 @@
   (map first
        (into [] s)))
 
-(defn sample-to-vec
+(defn c-sample-to-vec
   [index-map s-prime]
   (let [value-map   (map-invert index-map)
         ks          (keys value-map)]
@@ -244,7 +244,7 @@
                (conj s-prime-vec
                      (get s-prime (get value-map k))))))))
 
-(defn vec-to-sample
+(defn c-vec-to-sample
   [V index-map s vec-sample]
   (loop [V      V
          s-new  s]

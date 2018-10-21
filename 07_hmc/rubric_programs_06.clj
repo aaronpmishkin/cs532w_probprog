@@ -62,7 +62,7 @@
 
 
 ; PROGRAM 4
-(probabilistic-program :gg 1 2
+(probabilistic-program :bgg 1 3
   (let [sprinkler true
         wet-grass true
         is-cloudy (sample (flip 0.5))

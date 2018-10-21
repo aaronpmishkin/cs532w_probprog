@@ -33,7 +33,7 @@
 
 (defn samples-to-matrix
   [s-list]
-  (m/matrix (map utils/sample-to-vec s-list)))
+  (m/matrix (map utils/c-sample-to-vec s-list)))
 
 (defn construct-index-map
   [labels]
@@ -67,11 +67,11 @@
 
 
 (defn compute-empirical-covariance
-  [G n]
+  [sampling-map G n]
   (let [V               (get G :V)
-        samples         (repeatedly n (fn [] (sampling/ordered-sample-from-graph G false)))
+        samples         (repeatedly n (fn [] (sampling/sample-from-graph G sampling-map false)))
         value-map       (second (first samples))
-        samples         (map first samples)
+        samples         (map second samples)
         samples         (map (fn [x] (map (fn [y]
                                             (seq? y) 0 y)
                                           x))
