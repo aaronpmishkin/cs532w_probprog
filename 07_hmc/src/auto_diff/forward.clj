@@ -38,7 +38,7 @@
 (defn forward-terminal
   [e G type]
   (let [v                   (gensym "vertex_")
-        E                   (eval e)
+        E                   e
         [V S]               (utils/multiple-get G [:V :S])
         details             {:value E
                              :adjoint 0
@@ -65,8 +65,7 @@
         params              (rest e)
         p                   (gensym "vertex_")
         [Vs Es G]           (forward-params params G :internal)
-        E                   (eval (conj (apply list Es)
-                                        head))
+        E                   (apply head Es)
         [V S A]             (utils/multiple-get G
                                                 [:V :S :A])
         S-new               (assoc S

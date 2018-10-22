@@ -37,10 +37,19 @@
 (def sample-to-vec-labels)
 (def c-sample-to-vec)
 (def vec-to-sample)
-
+(def get-zeros)
 ; ==============================================
 ; ============= General Utilities ==============
 ; ==============================================
+
+(defn get-zeros
+  [n]
+  (loop [n n
+         acc []]
+    (if (= 0 n)
+      acc
+      (recur (dec n)
+             (conj acc 0)))))
 
 (defn merge-vectors
   [v1 v2]

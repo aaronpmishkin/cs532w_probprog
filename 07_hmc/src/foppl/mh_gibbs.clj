@@ -1,3 +1,9 @@
+; @Author: aaronmishkin
+; @Date:   18-10-13
+; @Email:  amishkin@cs.ubc.ca
+; @Last modified by:   aaronmishkin
+; @Last modified time: 18-10-20
+
 (ns foppl.mh-gibbs
   "Implementation of Monte Carlo samplers for inference."
   (:require [anglican.runtime       :as anglican]

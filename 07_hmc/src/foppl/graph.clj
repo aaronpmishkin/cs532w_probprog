@@ -232,6 +232,15 @@
     (eval `(~'fn [~@V]
                  ~density-ex))))
 
+(defn build-quoted-scoring-fn
+  [G]
+  (let [V           (get G :V)
+        P           (get G :P)
+        density-ex  (sum-score-expressions V P)]
+    `(~'fn [~@V]
+           ~density-ex)))
+
+
 (defn build-scoring-map
   [G]
   (let [V           (get G :V)]

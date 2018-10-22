@@ -91,7 +91,7 @@
 
 ; PROGRAM 5
 
-(probabilistic-program :bgg 0.01 2
+(probabilistic-program :bgg 0.001 2
   (let [x (sample (normal 0 10))
         y (sample (normal 0 10))]
     (observe (dirac (+ x y)) 7)

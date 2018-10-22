@@ -1,3 +1,10 @@
+; @Author: aaronmishkin
+; @Date:   18-10-13
+; @Email:  amishkin@cs.ubc.ca
+; @Last modified by:   aaronmishkin
+; @Last modified time: 18-10-20
+
+
 (ns foppl.sampling
   "Core graph operations for the FOPPL language."
   (:require [anglican.runtime     :as anglican]

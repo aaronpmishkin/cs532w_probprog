@@ -72,7 +72,9 @@
                 [E G]               (compiler/compile-expression clean-rho
                                                                  true
                                                                  clean-e)
-                ret                 (inference/compute-expectation inf-method scale block-size E G)]
+                ret                 (if (= inf-method :hmc)
+                                      (inference/compute-hmc-expectation inf-method scale block-size E G)
+                                      (inference/compute-mh-expectation inf-method scale block-size E G))]
             ret))
 
 
