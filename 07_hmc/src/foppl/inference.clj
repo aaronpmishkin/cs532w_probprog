@@ -40,7 +40,7 @@
 
 (defn compute-hmc-expectation
   [inf-method scale block-size E G]
-  (let [n                   10000
+  (let [n                   100000
         burnin              5000
         sorted-V            (utils/topological-sort G)
         G                   (assoc G :V sorted-V)
@@ -53,7 +53,7 @@
         Sigma-diagonal      (m/diagonal-matrix (m/diagonal Sigma))
         [s-start s-vec]     (sampling/sample-from-consistent-joint G sampling-map)
         p-tilde-start       (scoring/score-assignment s-vec scoring-fn)
-        s-list              (hmc/hmc [[s-vec s-start] p-tilde-start] G Sigma-diagonal index-map sampling-map scoring-map scoring-fn quoted-scoring-fn)
+        s-list              (hmc/hmc [[s-vec s-start] p-tilde-start] G Sigma-diagonal index-map sampling-map scoring-map scoring-fn quoted-scoring-fn block-size)
         s-list              (drop burnin s-list)
         samples             (take n s-list)
         acc                 (sum-eval E samples)

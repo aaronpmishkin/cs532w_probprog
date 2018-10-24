@@ -25,7 +25,7 @@
 
 ; Relaxed dirac distribution.
 
-(def dirac-sigma 0.001)
+(def dirac-sigma 1)
 
 (anglican/defdist dirac
   "Simple implementation of Dirac delta distribution."

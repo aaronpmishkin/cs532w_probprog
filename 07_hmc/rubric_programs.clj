@@ -14,14 +14,13 @@
             [anglican.stat          :as stat]
             [anglican.runtime       :as anglican]))
 
-(probabilistic-program :hmc 1 1
+(probabilistic-program :hmc 1 0.1
   (let [mu (sample (normal 1 (sqrt 5)))
            sigma (sqrt 2)
              lik (normal mu sigma)]
        (observe lik 8)
        (observe lik 9)
        mu))
-
 
 (defn observe-data [_ data slope bias]
   (let [xn (first data)
@@ -30,7 +29,7 @@
     (observe (normal zn 1.0) yn)
     (rest (rest data))))
 
-(probabilistic-program :hmc 1 1
+(probabilistic-program :hmc 1 0.1
   (let [slope (sample (normal 0.0 10.0))
         bias  (sample (normal 0.0 10.0))
         data (vector 1.0 2.1 2.0 3.9 3.0 5.3
@@ -38,8 +37,29 @@
     (loop 6 data observe-data slope bias)
     (vector slope bias)))
 
-(probabilistic-program :hmc 1 1
+
+(probabilistic-program :hmc 1 0.1
   (let [x (sample (normal 0 10))
         y (sample (normal 0 10))]
     (observe (dirac (+ x y)) 7)
     [x y]))
+
+
+(def n_iters 100)
+
+(loop [i        n_iters
+       x-avg    [0 0]
+       y-avg    [0 0]]
+  (if (= i 0)
+    [[(/ (nth x-avg 0) n_iters) (/ (nth x-avg 1) n_iters)]
+     [(/ (nth y-avg 0) n_iters) (/ (nth y-avg 1) n_iters)]]
+    (let [result
+                     (probabilistic-program :hmc 0.1 0.1
+                       (let [x (sample (normal 0 10))
+                             y (sample (normal 0 10))]
+                         (observe (dirac (+ x y)) 7)
+                         [x y]))]
+      (recur
+             (dec i)
+             [(+ (first x-avg) (first (get result :mean))) (+ (second x-avg) (first (get result :variance)))]
+             [(+ (first y-avg) (second (get result :mean))) (+ (second y-avg) (second (get result :variance)))]))))
