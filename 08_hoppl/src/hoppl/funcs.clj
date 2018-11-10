@@ -16,6 +16,7 @@
 (def map)
 (def reduce)
 (def repeatedly)
+(def append)
 
 ; ===============================================
 ; ============== HOPPL Functions ================
@@ -32,7 +33,7 @@
   [func acc collection]
   (if (empty? collection)
     acc
-    (reduce (func acc (first collection) (rest collection)))))
+    (reduce func (func acc (first collection)) (rest collection))))
 
 (core/defn repeatedly
    [n func]
@@ -41,3 +42,7 @@
      (cons (func)
            (repeatedly (dec n)
                        func))))
+
+(defn append
+  [vec item]
+  (conj vec item))

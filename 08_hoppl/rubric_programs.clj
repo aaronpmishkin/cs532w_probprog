@@ -8,7 +8,8 @@
   "Core implementation of the HOPPL."
   (:require [anglican.runtime       :as anglican]
             [hoppl.core             :refer :all]
-            [hoppl.distributions    :refer :all]))
+            [hoppl.distributions    :refer :all]
+            [hoppl.funcs            :refer :all]))
 
 
 (defn until-success
@@ -17,7 +18,7 @@
     n
     (until-success p (+ n 1) dist)))
 
-(probabilistic-program 100
+(probabilistic-program 1000 :mean {}
   (let [p 0.01
         dist (flip p)]
        (until-success p 0 dist)))
@@ -33,7 +34,7 @@
                     (* x (sqrt (* -2 (/ (log s) s))))))
          (marsaglia-normal mean var))))
 
-(probabilistic-program
+(probabilistic-program 100 :mean {}
   (let [mu (marsaglia-normal 1 5)
         sigma (sqrt 2)
         lik (normal mu sigma)]
@@ -41,7 +42,7 @@
     (observe lik 9)
     mu))
 
-(probabilistic-program
+(probabilistic-program 50000 :bins {0 0, 1 0, 2 0}
   (let [observations [0.9 0.8 0.7 0.0 -0.025 -5.0 -2.0 -0.1 0.0 0.13 0.45 6 0.2 0.3 -1 -1]
         init-dist (discrete [1.0 1.0 1.0])
         trans-dists {0 (discrete [0.1 0.5 0.4])
@@ -49,12 +50,12 @@
                      2 (discrete [0.15 0.15 0.7])}
         obs-dists {0 (normal -1 1)
                    1 (normal 1 1)
-                   2 (normal 0 1)}
-        (reduce
-          (fn [states obs]
-            (let [state (sample (get trans-dists
-                                     (peek states)))]
-              (observe (get obs-dists state) obs)
-              (conj states state)))
-          [(sample init-dist)]
-          observations)]))
+                   2 (normal 0 1)}]
+       (reduce
+         (fn [states obs]
+           (let [state (sample (get trans-dists
+                                    (peek states)))]
+             (observe (get obs-dists state) obs)
+             (conj states state)))
+         [(sample init-dist)]
+         observations)))

@@ -78,14 +78,14 @@
       (vector? e)                           (evaluate-vector rho sigma loglik e)
       (map? e)                              (evaluate-map rho sigma loglik e)
       :else                                 (evaluate-symbol rho sigma loglik e))
-    (let [[head loglik]    (evaluate-expression rho sigma loglik (first e))
+    (let [[head loglik]    (trampoline evaluate-expression rho sigma loglik (first e))
           e  (cons head (rest e))]
          (cond
-           (= 'fn head)         (evaluate-fn rho sigma loglik e)
-           (= 'if head)         (evaluate-if rho sigma loglik e)
-           (= 'sample head)     (evaluate-sample rho sigma loglik e)
-           (= 'observe head)    (evaluate-observe rho sigma loglik e)
-           :else                (evaluate-procedure rho sigma loglik e)))))
+           (= 'fn head)                     (evaluate-fn rho sigma loglik e)
+           (= 'if head)                     (evaluate-if rho sigma loglik e)
+           (= 'sample head)                 (evaluate-sample rho sigma loglik e)
+           (= 'observe head)                (evaluate-observe rho sigma loglik e)
+           :else                            (evaluate-procedure rho sigma loglik e)))))
 
 
 ; ===============================================
@@ -94,16 +94,17 @@
 
 (defn evaluate-symbol
   [rho sigma loglik e]
-  [(get sigma e e) loglik])
+  (fn [] [(get sigma e e) loglik]))
 
 
 (defn evaluate-vector
   [rho sigma loglik e]
   (reduce (fn [[acc loglik] e]
-            (let [[E loglik]    (evaluate-expression rho
-                                                     sigma
-                                                     loglik
-                                                     e)
+            (let [[E loglik]    (trampoline evaluate-expression
+                                            rho
+                                            sigma
+                                            loglik
+                                            e)
                   acc       (conj acc E)]
               [acc loglik]))
           [[] loglik]
@@ -113,10 +114,11 @@
 (defn evaluate-map
   [rho sigma loglik e]
   (reduce (fn [[acc loglik] k]
-              (let [[E loglik]      (evaluate-expression rho
-                                                         sigma
-                                                         loglik
-                                                         (get e k))
+              (let [[E loglik]      (trampoline evaluate-expression
+                                                rho
+                                                sigma
+                                                loglik
+                                                (get e k))
                     acc             (assoc acc k E)]
                 [acc loglik]))
           [{} loglik]
@@ -128,18 +130,19 @@
   (let [head            (first e)
         params          (rest e)
         [Es loglik]     (reduce (fn [[Es loglik] ei]
-                                    (let [[Ei loglik] (evaluate-expression rho
-                                                                           sigma
-                                                                           loglik
-                                                                           ei)]
+                                    (let [[Ei loglik] (trampoline evaluate-expression
+                                                                  rho
+                                                                  sigma
+                                                                  loglik
+                                                                  ei)]
                                       [(conj Es Ei) loglik]))
                                 [[] loglik]
                                 params)]
-       (call-procedure rho
-                       sigma
-                       loglik
-                       head
-                       Es)))
+       #(call-procedure rho
+                        sigma
+                        loglik
+                        head
+                        Es)))
 
 
 (defn evaluate-fn
@@ -152,35 +155,35 @@
                                    func-name
                                    func-def)]
     (def anonymous-functions anons)
-    [func-name loglik]))
+    (fn [] [func-name loglik])))
 
 
 (defn evaluate-if
   [rho sigma loglik e]
   (let [[s e1 e2 e3]    e
-        [E1 loglik]     (evaluate-expression rho sigma loglik e1)]
+        [E1 loglik]     (trampoline evaluate-expression rho sigma loglik e1)]
     (if E1
-      (evaluate-expression rho sigma loglik e2)
-      (evaluate-expression rho sigma loglik e3))))
+      #(evaluate-expression rho sigma loglik e2)
+      #(evaluate-expression rho sigma loglik e3))))
 
 
 
 (defn evaluate-sample
   [rho sigma loglik e]
   (let [[s e1]          e
-        [E1 loglik]     (evaluate-expression rho sigma loglik e1)
+        [E1 loglik]     (trampoline evaluate-expression rho sigma loglik e1)
         S               (anglican/sample* E1)]
-    [S loglik]))
+    (fn [] [S loglik])))
 
 
 (defn evaluate-observe
   [rho sigma loglik e]
   (let [[s e1 e2]       e
-        [E1 loglik]     (evaluate-expression rho sigma loglik e1)
-        [E2 loglik]     (evaluate-expression rho sigma loglik e2)
+        [E1 loglik]     (trampoline evaluate-expression rho sigma loglik e1)
+        [E2 loglik]     (trampoline evaluate-expression rho sigma loglik e2)
         l3              (anglican/observe* E1 E2)
         loglik          (+ loglik l3)]
-    [E2 loglik]))
+    (fn [] [E2 loglik])))
 
 
 (defn call-procedure
@@ -194,7 +197,7 @@
           sigma     (utils/l-multiple-insert sigma
                                              params
                                              Es)]
-      (evaluate-expression rho sigma loglik body))))
+      #(evaluate-expression rho sigma loglik body))))
 
 
 
